@@ -31,4 +31,7 @@ features = [
 [dependencies]
 assert_hex = "0.2.2"
 clap = { version = "3.1.6", features = ["derive"] }
+env_logger = "0.10.0"
+itertools = "0.11.0"
+log = "0.4.20"
 serialport = "4.2.2"

@@ -2,8 +2,15 @@ use std::io::{self, Write};
 use std::time::Duration;
 
 use clap::{Arg, Command};
+use log::{info,warn,debug};
+mod protocol;
+use crate::protocol::{PartialFrame,FramePart};
+use itertools::Itertools;
 
-fn main() {
+fn main() -> ! {
+
+    env_logger::init();
+
     let matches = Command::new("Serialport Example - Receive Data")
         .about("Reads data from a serial port and echoes it to stdout")
         .disable_version_flag(true)
@@ -29,15 +36,45 @@ fn main() {
         .timeout(Duration::from_millis(10))
         .open();
 
+    // setup the partial frame to decode into
+    let mut new_frame = PartialFrame::new();
+
     match port {
         Ok(mut port) => {
             let mut serial_buf: Vec<u8> = vec![0; 1000];
             println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
+
+            // set port DTR pin
+            match port.set_flow_control(serialport::FlowControl::Hardware) {
+                Ok(_) => port.write_data_terminal_ready(false).expect("DTR pin set High"),
+                Err(_) => todo!(),
+            }
+
             loop {
+                debug!("LOOP");
+
                 match port.read(serial_buf.as_mut_slice()) {
-                    Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => eprintln!("{:?}", e),
+                    Ok(t) => {
+                        match new_frame.write_all(&serial_buf[..t]) {
+                            Ok(_) => {
+                            },
+                            Err(_) => {
+                            },
+                        }
+                    },
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                        ()
+                    },
+                    Err(e) => {
+                        eprintln!("{:?}", e)
+                    },
+                }
+
+                // check on the current frame status
+                if new_frame.finished() {
+                    // print and reset!
+                    info!("DONE! {}",new_frame.data.iter().map(|x| format!("{:02x}",x)).join(","));
+                    new_frame.reset();
                 }
             }
         }
