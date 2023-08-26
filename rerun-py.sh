@@ -24,9 +24,12 @@ while True:
 
   try:
     dev.open("/dev/ttyUSB0")
+    sleep(0.5)
+    if not dev.alive():
+      raise Exception("Whoops")
   except:
     print("Couldn't open LiDAR, retrying...")
-    sleep(3.0)
+    sleep(1.0)
 
   while dev.alive():
       # read a measurement frame

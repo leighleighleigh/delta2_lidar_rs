@@ -1,20 +1,15 @@
-#![allow(unused_imports)]
-use anyhow::Result;
-use log::{error, info};
 use protocol::{MeasurementFrame,Measurement};
 
 pub mod protocol;
-// use crate::protocol::{MeasurementFrame, PartialFrame};
-
 pub mod lidar;
 use crate::lidar::Lidar;
 
 extern crate pyo3;
 
-use pyo3::exceptions::{PyOSError, PyRuntimeError, PyValueError, PyTypeError};
+use pyo3::exceptions::{PyOSError};
 use pyo3::prelude::*;
-use pyo3::types::{PyModule, PyList};
-use pyo3::{PyResult};
+use pyo3::types::{PyModule};
+use pyo3::PyResult;
 
 
 #[pyclass]

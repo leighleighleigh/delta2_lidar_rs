@@ -19,7 +19,7 @@ use itertools::Itertools;
 // part of the frame is. I've made a simple tuple type to represent this, hopefully it will make
 // the state machine code much cleaner! (no idea tho).
 // offset, length, expected constnat value
-use log::{debug,info};
+use log::debug;
 use std::{io::{Error, Write}, fmt::Display};
 use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -81,8 +81,7 @@ impl Default for Measurement {
 
 impl MeasurementFrame {
     pub fn as_json(&self) -> String {
-        let j = serde_json::to_string(&self).expect("Serialized to JSON");
-        j
+        serde_json::to_string(&self).expect("Serialized to JSON")
     }
 }
 

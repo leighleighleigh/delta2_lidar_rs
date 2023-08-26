@@ -6,7 +6,6 @@ use log::{debug, error, warn};
 use serialport::{self, SerialPort};
 
 use std::io::{self, Write};
-// use std::path::PathBuf;
 
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{self, RecvError};
