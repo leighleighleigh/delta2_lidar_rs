@@ -9,7 +9,7 @@
 }:
 
 buildPythonPackage rec {
-  name = "delta2_lidar_py";
+  name = "delta2_lidar";
 
   src = lib.cleanSource ./.;
   sourceRoot = "source/";

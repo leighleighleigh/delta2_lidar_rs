@@ -17,13 +17,13 @@ def get_version() -> str:
     return version
 
 setup(
-    name="delta2_lidar_py",
+    name="delta2-lidar",
     version=get_version(),
-    packages=["delta2_lidar_py"],
+    packages=["delta2_lidar"],
     zip_safe=False,
     rust_extensions=[
         RustExtension(
-            "delta2_lidar_py.delta2_lidar_py",
+            "delta2_lidar.delta2_lidar_py",
             path="Cargo.toml",
             binding=Binding.PyO3,
             py_limited_api='auto'
