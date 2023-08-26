@@ -11,6 +11,18 @@ This driver is a **WORK IN PROGRESS**, pending the following TODOs:
  - [ ] ? Handle the low-RPM health message, by raising a (crate-specific) exception
  - [ ] ? Expose additional diagnostics such as scan rate, SNR, CRC error rate
 
+## Building
+There are a few ways to build this package.
+```
+# build and run binary program
+cargo build 
+
+# build the full library,binary,and python library, with nix
+./build.sh
+
+# build with cross build (not tested yet)
+cross build --target aarch64-unknown-linux-gnu
+```
 
 ## Note on Motor (M+/M-) Voltage
 I was originally running both the LiDAR MCU and it's motor from 5V - but the USB port + cable impedance meant that it was only running at about ~4V.
