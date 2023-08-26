@@ -1,103 +1,84 @@
 #![allow(unused_imports)]
 
+use anyhow::Result;
+use log::{error, info};
 use std::alloc::System;
 use std::io::{self, Write};
 use std::time::Duration;
-use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::Result;
-use clap::{arg, command, value_parser};
-use log::{error, info};
-use std::sync::mpsc::channel;
-// use std::thread;
+// the actual library
+use delta2_lidar_rs::lidar::Lidar;
+use delta2_lidar_rs::protocol::{MeasurementFrame, Measurement};
 
-mod protocol;
-use crate::protocol::{MeasurementFrame, PartialFrame};
-
-mod lidar;
-use crate::lidar::Lidar;
-
+// rerun application logging
 use rerun::components::{ColorRGBA, Point3D, Radius, Transform3D, Vec3D};
 use rerun::transform::*;
 
 fn main() -> Result<()> {
     env_logger::init();
 
-    let matches = command!() 
-        .arg(arg!([PORT]).value_parser(value_parser!(PathBuf)).default_value("/dev/ttyUSB0"))
-        .get_matches();
-
+    // start a rerun recording session, streaming over websockets
     let recording = rerun::RecordingStreamBuilder::new("Delta2")
         .connect(rerun::default_server_addr(), None)
         .unwrap();
 
 
-    let serial_port : PathBuf = matches.get_one::<PathBuf>("PORT").unwrap().into();
-    let port_str : String = serial_port.to_string_lossy().to_string();
+    // create a lidar device
     let mut delta = Lidar::new();
-    
-    delta.open(port_str).unwrap();
+    delta.open("/dev/ttyUSB0".to_string()).unwrap();
 
+    // read data!
     loop {
         match delta.recv() {
             Ok(frame) => {
-                // a 180 degree offset means the motor is at the 'back' of the module, which makes more sense to me.
-                let start_angle = frame.start_angle + 180.0; 
-                let offset = frame.offset_angle;
+                // with improvements to the Measurement struct, we can now just zip through and convert each measurement to a 
+                // Transform3D, Point3D, etc etc.
+                // much cleaner!
+                let stamp = frame.timestamp as i64;
 
-                let start_angles = frame
-                    .measurements
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _dist)| {
-                        let angle = start_angle + (i as f32) * offset;
-                        // Point3D::new(dx,dy, 0.0)
+                // set the time for this data
+                recording.set_time_nanos("scan", stamp);
+                recording.set_time_nanos("tf", stamp);
+
+                // log the RPM of the lidar
+                let rpm = rerun::components::Scalar(frame.rpm as f64);
+
+                // transform data
+                let sweep = frame.measurements.iter().map(|m| {
+                        // idk why but the angle needs a +90 and -ve, in rerun.
                         Transform3D::new(TranslationRotationScale3D::rigid(
                             Vec3D::ZERO,
                             RotationAxisAngle::new(
                                 Vec3D::new(0.0, 0.0, 1.0),
-                                Angle::Degrees(-angle + 90.0),
+                                Angle::Degrees(-m.angle + 90.0),
                             ),
                         ))
-                    })
-                    .collect::<Vec<_>>();
+                    }).collect::<Vec<_>>();
 
+                // scan data
+                let (ranges, quality): (Vec<Point3D>,Vec<ColorRGBA>) = frame.measurements.iter().map(|m| {
+                        let dx = m.distance_mm * m.angle.to_radians().sin() / 1000.0;
+                        let dy = m.distance_mm * m.angle.to_radians().cos() / 1000.0;
 
-                let range_data = frame
-                    .measurements
-                    .iter()
-                    .enumerate()
-                    .map(|(i, dist)| {
-                        let angle = start_angle + (i as f32) * offset;
-                        let dx = dist.distance_mm * angle.to_radians().sin() / 1000.0;
-                        let dy = dist.distance_mm * angle.to_radians().cos() / 1000.0;
-                        Point3D::new(dx, dy, 0.0)
-                    })
-                    .collect::<Vec<_>>();
+                        (Point3D::new(dx, dy, 0.0),ColorRGBA::from_rgb(m.signal_quality, 0, 0))
+                }).unzip();
 
-                let quality_data = frame
-                    .measurements
-                    .iter()
-                    .enumerate()
-                    .map(|(_i, dist)| {
-                        ColorRGBA::from_rgb(dist.signal_quality, 0, 0)
-                    })
-                    .collect::<Vec<_>>();
-                    
-                let t = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos();
-
-                recording.set_time_nanos("scan", t as i64);
-                recording.set_time_nanos("tf", t as i64);
-
-                rerun::MsgSender::new("tf")
-                    .with_component(&start_angles)?
+                // log the speed of the spinny spin
+                rerun::MsgSender::new("scan/rpm")
+                    .with_component(&vec![rpm])?
                     .send(&recording)?;
 
+                // log the direction of the spinny spin
+                rerun::MsgSender::new("tf")
+                    .with_component(&sweep)?
+                    .send(&recording)?;
+
+                // log the range measurements and signal quality of the spinny spin
                 rerun::MsgSender::new("scan")
-                    .with_component(&range_data)?
-                    .with_component(&quality_data)?
-                    .with_splat(Radius(0.025))?
+                    .with_component(&ranges)?
+                    .with_component(&quality)?
+                    .with_splat(Radius(0.01))?
                     .send(&recording)?;
             }
             Err(e) => {

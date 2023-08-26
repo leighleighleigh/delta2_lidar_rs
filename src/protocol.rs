@@ -22,7 +22,7 @@ use itertools::Itertools;
 use log::{debug,info};
 use std::{io::{Error, Write}, fmt::Display};
 use serde::Serialize;
-// use serde_json::Result;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // These are the hard-coded 'magic numbers' which we expect to receive in each frame.
 // const FRAME_HEADER : FramePart = FramePart{ offset: 0, length: 1, expected: Some(0xAA) };
@@ -43,11 +43,13 @@ pub struct PartialFrame {
     pub data: Vec<u8>, // buffered input data gets copied here, to be decoded at the end
     pub bytes_wanted: usize, // how many bytes to read until we complete the next part
     pub bytes_written: usize, // delta 
+    pub timestamp: u128, // unix epoch nanoseconds when the header was identified.
 }
 
 #[derive(Serialize)]
 #[derive(Debug, Clone)]
 pub struct Measurement {
+    pub angle : f32, // degrees
     pub signal_quality: u8,
     pub distance_mm : f32,
 }
@@ -63,12 +65,14 @@ pub struct MeasurementFrame {
     pub rpm: u8,
     pub offset_angle: f32,
     pub start_angle: f32,
+    pub timestamp: u128, // unix epoch nanoseconds when the header was identified.
     pub measurements: Vec<Measurement>,
 }
 
 impl Default for Measurement {
     fn default() -> Self {
         Measurement {
+            angle: 0.0,
             signal_quality: 0,
             distance_mm: 0.0,
         }
@@ -90,6 +94,7 @@ impl Default for MeasurementFrame {
             rpm: 0,
             offset_angle: 0.0,
             start_angle: 0.0,
+            timestamp: 0,
             measurements: vec![Measurement::default()],
         }
     }
@@ -120,12 +125,14 @@ impl From<PartialFrame> for MeasurementFrame {
             // and there are a total of 15 frames for the full 360 degree sweep.
             let offset_angle_deg : f32 = 24.0 / (value.measurements_count() as f32);
 
-            let start_angle_deg : f32 = (start_angle as f32) * 0.01;
+            // 180 degrees means the 0-point is opposite the motor location, rather than on-top of the motor.
+            let start_angle_deg : f32 = (start_angle as f32) * 0.01 + 180.0;
 
             let mut m_frame = MeasurementFrame {
                 rpm,
                 offset_angle:offset_angle_deg,
                 start_angle:start_angle_deg,
+                timestamp:value.timestamp,
                 measurements: vec![],
             };
 
@@ -137,7 +144,8 @@ impl From<PartialFrame> for MeasurementFrame {
                 .collect_vec()
                 .chunks(3)
                 .take(value.measurements_count().into())
-                .map(|m| {
+                .enumerate()
+                .map(|(i,m)| {
                     // mapping three bytes at a time into a measurement
                     let signal_quality: u8 = *m[0];
                     let distance_msb: u8 = *m[1];
@@ -145,7 +153,10 @@ impl From<PartialFrame> for MeasurementFrame {
                     let dist_raw = u16::from_be_bytes([distance_msb,distance_lsb]);
                     let dist_mm = (dist_raw as f32) * 0.25;
 
+                    let angle = start_angle_deg + (i as f32) * offset_angle_deg;
+
                     Measurement {
+                        angle,
                         signal_quality,
                         distance_mm:dist_mm,
                     }
@@ -253,6 +264,7 @@ impl Default for PartialFrame {
             data: vec![],
             bytes_wanted: 8,
             bytes_written: 0,
+            timestamp: get_nanos(),
         }
     }
 }
@@ -296,6 +308,8 @@ impl Write for PartialFrame {
 
             let accept_byte = match (self.data.len(), d) {
                 (0, 0xAA) => {
+                    // update timestamp on header detect
+                    self.timestamp = get_nanos();
                     // header
                     true
                 }
@@ -365,4 +379,9 @@ impl Write for PartialFrame {
         // todo!()
         Ok(())
     }
+}
+
+pub fn get_nanos() -> u128 {
+    // get the current epoch time in nanoseconds
+    SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos()
 }

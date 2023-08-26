@@ -1,5 +1,5 @@
 [package]
-name = "rust-lidar-serial-driver"
+name = "delta2_lidar_rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -31,7 +31,6 @@ features = [
 [dependencies]
 anyhow = "1.0.75"
 assert_hex = "0.2.2"
-clap = { version = "3.1.6", features = ["derive", "cargo"] }
 env_logger = "0.10.0"
 itertools = "0.11.0"
 log = "0.4.20"
