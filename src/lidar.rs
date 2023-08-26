@@ -31,7 +31,10 @@ impl Lidar {
     pub fn alive(&self) -> bool {
         // checks if worker thread is alive, and the channels exist.
         match self.rx.is_some() && self.worker_handle.is_some() {
-            true => !self.worker_handle.as_ref().unwrap().is_finished(),
+            true => {
+                let th : &thread::JoinHandle<Result<()>> = self.worker_handle.as_ref().unwrap();
+                !th.is_finished()
+            }
             false => false,
         }
     }
@@ -157,12 +160,6 @@ impl Lidar {
                     Ok(())
                 })?,
         );
-
-        // if we are now alive
-        if self.alive() {
-            Ok(())
-        } else {
-            panic!("Failed to start Lidar!");
-        }
+        Ok(())
     }
 }

@@ -13,31 +13,42 @@ cat << EOF > test.py
 import rerun as rr
 import math
 import delta2_lidar_py
+from time import sleep
 
 # start rerun session
 rr.init("delta2_lidar_rerun", spawn = True)
 
-# connect to hardware
-dev = delta2_lidar_py.Lidar()
-dev.open("/dev/ttyUSB0")
-
 while True:
-    # read a measurement frame
-    f = dev.read()
+  # connect to hardware, using a rudimentary 'reconnect' method
+  dev = delta2_lidar_py.Lidar()
 
-    # set the time of this data
-    rr.set_time_nanos("scan", f.timestamp)
+  try:
+    dev.open("/dev/ttyUSB0")
+  except:
+    print("Couldn't open LiDAR, retrying...")
+    sleep(3.0)
 
-    # convert to cartesian points
-    points = []
+  while dev.alive():
+      # read a measurement frame
+      try:
+        f = dev.read()
+      except:
+        print("LiDAR disconnected?")
+        break
 
-    for m in f.measurements:
-        dx = m.distance_mm * math.sin(math.radians(m.angle)) / 1000.0;
-        dy = m.distance_mm * math.cos(math.radians(m.angle)) / 1000.0;
-        dz = 0.0
-        points.append([dx,dy,dz])
+      # set the time of this data
+      rr.set_time_nanos("scan", f.timestamp)
 
-    rr.log_points("scan", points)
+      # convert to cartesian points
+      points = []
+
+      for m in f.measurements:
+          dx = m.distance_mm * math.sin(math.radians(m.angle)) / 1000.0;
+          dy = m.distance_mm * math.cos(math.radians(m.angle)) / 1000.0;
+          dz = 0.0
+          points.append([dx,dy,dz])
+
+      rr.log_points("scan", points)
 
 EOF
 
