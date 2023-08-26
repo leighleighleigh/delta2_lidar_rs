@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 
 use anyhow::Result;
-use log::{error, info};
+use log::{error, info, warn};
 use std::alloc::System;
 use std::io::{self, Write};
 use std::time::Duration;
@@ -82,7 +82,7 @@ fn main() -> Result<()> {
                     .send(&recording)?;
             }
             Err(e) => {
-                panic!("{}", e);
+                warn!("{}", e);
             }
         }
     }

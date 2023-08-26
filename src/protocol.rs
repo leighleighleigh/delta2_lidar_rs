@@ -62,7 +62,7 @@ impl Display for Measurement {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MeasurementFrame {
-    pub rpm: u8,
+    pub rpm: f32,
     pub offset_angle: f32,
     pub start_angle: f32,
     pub timestamp: u128, // unix epoch nanoseconds when the header was identified.
@@ -91,7 +91,7 @@ impl Display for MeasurementFrame {
 impl Default for MeasurementFrame {
     fn default() -> Self {
         MeasurementFrame {
-            rpm: 0,
+            rpm: 0.0,
             offset_angle: 0.0,
             start_angle: 0.0,
             timestamp: 0,
@@ -106,7 +106,8 @@ impl From<PartialFrame> for MeasurementFrame {
             MeasurementFrame::default()
         } else {
             let data_start: usize = 8;
-            let rpm: u8 = value.data.as_slice()[data_start];
+            let rpm_raw: u8 = value.data.as_slice()[data_start];
+            let rpm : f32 = (rpm_raw as f32) * 3.0;
 
             // assemble offset angle
             let off_msb: u8 = value.data.as_slice()[data_start + 1];
