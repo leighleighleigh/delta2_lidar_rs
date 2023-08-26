@@ -1,12 +1,10 @@
 { lib
 , rustPlatform
 , pkg-config
-, systemd
-, udev
 }:
 
 rustPlatform.buildRustPackage {
-  buildInputs = [ pkg-config systemd udev ];
+  buildInputs = [ pkg-config ];
   nativeBuildInputs = [ pkg-config ];
 
   name = "delta2_lidar_rs";

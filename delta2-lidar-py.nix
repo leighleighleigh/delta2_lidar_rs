@@ -2,8 +2,6 @@
 , buildPythonPackage
 , rustPlatform
 , pkg-config
-, systemd
-, udev 
 , cargo
 , rustc
 , setuptools-rust
@@ -20,7 +18,7 @@ buildPythonPackage rec {
     lockFile = ./Cargo.lock;
   };
 
-  buildInputs = [ pkg-config systemd udev ];
+  buildInputs = [ pkg-config ];
 
   nativeBuildInputs = [
     cargo
