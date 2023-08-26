@@ -88,6 +88,23 @@ impl Measurement {
     }
 }
 
+
+// This FullScan struct is built from a vector of MeasurementFrames,
+// and is 'completed' when the full angle-range is satisfied.
+// Other information such as min/max timestamp can be used to validate the
+// correctness of the data.
+
+// #[derive(Debug, Clone, Serialize)]
+// pub struct FullScan {
+//     pub rpm: f32,
+//     pub offset_angle: f32,
+//     pub start_angle: f32,
+//     pub timestamp: u128, // unix epoch nanoseconds when the header was identified.
+//     pub measurements: Vec<Measurement>,
+// }
+
+
+
 impl MeasurementFrame {
     pub fn as_json(&self) -> String {
         serde_json::to_string(&self).expect("Serialized to JSON")

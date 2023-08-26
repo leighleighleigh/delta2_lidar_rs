@@ -2,7 +2,8 @@
 
 fn main() {
     // Set environment variable PYO3_NO_PYTHON
-    // to disable the automatic detection of Python
+    // to disable the automatic detection of Python on host.
+    // (this made cross-building easier)
     std::env::set_var("PYO3_NO_PYTHON", "1");
     pyo3_build_config::add_extension_module_link_args();
 }

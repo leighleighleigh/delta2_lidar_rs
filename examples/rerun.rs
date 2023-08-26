@@ -8,8 +8,8 @@ use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // the actual library
-use delta2_lidar_rs::lidar::Lidar;
-use delta2_lidar_rs::protocol::{MeasurementFrame, Measurement};
+use delta2_lidar::lidar::Lidar;
+use delta2_lidar::protocol::{MeasurementFrame, Measurement};
 
 // rerun application logging
 use rerun::components::{ColorRGBA, Point3D, Radius, Transform3D, Vec3D};

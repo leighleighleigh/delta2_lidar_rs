@@ -90,6 +90,13 @@ impl PyMeasurementFrame {
     }
 
     #[getter]
+    fn end_angle(&self) -> PyResult<f32> {
+        let s = self.frame.start_angle;
+        let o = (self.frame.measurements.len() as f32) * self.frame.offset_angle;
+        Ok(s + o)
+    }
+
+    #[getter]
     fn timestamp(&self) -> PyResult<u128> {
         Ok(self.frame.timestamp)
     }

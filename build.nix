@@ -11,6 +11,9 @@
 buildPythonPackage rec {
   name = "delta2_lidar";
 
+  # format is now 'pyproject', default is 'setuptools'
+  format = "pyproject";
+
   src = lib.cleanSource ./.;
   sourceRoot = "source/";
 
