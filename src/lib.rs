@@ -1,18 +1,49 @@
 #![allow(unused_imports)]
-use std::alloc::System;
-use std::io::{self, Write};
-use std::time::Duration;
-use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use anyhow::Result;
 use log::{error, info};
-use std::sync::mpsc::channel;
-// use std::thread;
 
 pub mod protocol;
-use crate::protocol::{MeasurementFrame, PartialFrame};
+// use crate::protocol::{MeasurementFrame, PartialFrame};
 
 pub mod lidar;
 use crate::lidar::Lidar;
+
+extern crate pyo3;
+
+use pyo3::exceptions::{PyOSError, PyRuntimeError, PyValueError, PyTypeError};
+use pyo3::prelude::*;
+use pyo3::types::{PyModule, PyList};
+use pyo3::{PyResult};
+
+
+#[pyclass]
+#[pyo3{name = "Lidar"}]
+struct PyLidar {
+    dev: Lidar,
+}
+
+#[pymethods]
+impl PyLidar {
+    #[new]
+    fn new() -> PyResult<Self> {
+        let bus = Lidar::new();
+        Ok(PyLidar{dev: bus})
+    }
+
+    fn open(&mut self, port : String) -> PyResult<()> {
+        self.dev.open(port).map_err(|e| {
+            PyOSError::new_err(format!("{}", e))
+        })?;
+        Ok(())
+    }
+}
+
+
+#[pymodule]
+fn delta2_lidar_py(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    m.add_class::<PyLidar>()?;
+
+    Ok(())
+}
+
 
