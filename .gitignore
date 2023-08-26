@@ -8,6 +8,9 @@
 # Release files are ignored
 /release/
 
+# Any 'result' folder from nix
+result
+
 # Any folder names 'build' is ignored
 **/build/**
 
