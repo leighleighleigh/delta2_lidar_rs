@@ -7,9 +7,12 @@ This is a driver for the 'Delta2' lidar, available through various retailers on 
 
 This driver is a **WORK IN PROGRESS**, pending the following TODOs:
  - [x] ! Re-structure the code as a library, exposing the Lidar+MeasurementFrame structs
- - [x] ! Add Python support, using [PyO3](https://pyo3.rs/v0.19.2/) 
- - [ ] ? Handle the low-RPM health messages, serial disconnection, etc, raising a (crate-specific) exceptions
- - [ ] ? Expose additional diagnostics such as scan rate, SNR, CRC error rate
+ - [x] ! Add Python support, using [PyO3](https://pyo3.rs/v0.19.2/)
+ - [ ] ! Test python build on Raspberry Pi
+ - [ ] ! Publish python builds to PyPy
+ - [ ] ! Handle the low-RPM health messages, serial disconnection, etc, with cleaner crate-specific exceptions
+ - [ ] ? Expose additional diagnostics such as scan rate, SNR, CRC error rates
+ - [ ] ? Handle serial re-connection ?
 
 ## Building
 There are a few ways to build this package.
