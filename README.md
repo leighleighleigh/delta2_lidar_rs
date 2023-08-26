@@ -31,7 +31,7 @@ from time import sleep
 # start rerun session
 rr.init("delta2_lidar_rerun", spawn = True)
 
-# connect to hardware, using a rudimentary 'reconnect' method
+# connect to hardware
 dev = delta2_lidar.Lidar()
 dev.open("/dev/ttyUSB0")
 
