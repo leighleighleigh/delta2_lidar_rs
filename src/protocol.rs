@@ -56,7 +56,7 @@ pub struct Measurement {
 
 impl Display for Measurement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{:5.1}",self.distance_mm))
+        f.write_str(&format!("{:3.1} deg - {:3.1} cm",self.angle,self.distance_mm/10.0))
     }
 }
 
@@ -79,12 +79,16 @@ impl Default for Measurement {
     }
 }
 
+impl MeasurementFrame {
+    pub fn as_json(&self) -> String {
+        let j = serde_json::to_string(&self).expect("Serialized to JSON");
+        j
+    }
+}
+
 impl Display for MeasurementFrame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Serialize it to a JSON string.
-        let j = serde_json::to_string(&self).expect("Serialized to JSON");
-        // f.write_str(&format!("{} rpm, {:03.2} - {:03.2} deg\n\t{}",self.rpm,self.start_angle,self.offset_angle,self.measurements.iter().format(" ")))
-        f.write_str(&format!("{}",j))
+        f.write_str(&format!("{} rpm, {:3.1} deg, {} pts",self.rpm,self.start_angle,self.measurements.len()))
     }
 }
 
@@ -127,7 +131,7 @@ impl From<PartialFrame> for MeasurementFrame {
             let offset_angle_deg : f32 = 24.0 / (value.measurements_count() as f32);
 
             // 180 degrees means the 0-point is opposite the motor location, rather than on-top of the motor.
-            let start_angle_deg : f32 = (start_angle as f32) * 0.01 + 180.0;
+            let start_angle_deg : f32 = ((start_angle as f32) * 0.01 + 180.0) % 360.0;
 
             let mut m_frame = MeasurementFrame {
                 rpm,

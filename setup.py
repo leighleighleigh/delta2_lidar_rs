@@ -23,7 +23,7 @@ setup(
     zip_safe=False,
     rust_extensions=[
         RustExtension(
-            "delta2_lidar_py",
+            "delta2_lidar_py.delta2_lidar_py",
             path="Cargo.toml",
             binding=Binding.PyO3,
             py_limited_api='auto'
