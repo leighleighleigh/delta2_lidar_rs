@@ -1,92 +1,108 @@
+#![allow(unused_imports)]
+
+use std::alloc::System;
 use std::io::{self, Write};
 use std::time::Duration;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use clap::{Arg, Command};
-use log::{info,warn,debug};
+use anyhow::Result;
+use clap::{arg, command, value_parser};
+use log::{error, info};
+use std::sync::mpsc::channel;
+// use std::thread;
+
 mod protocol;
-use crate::protocol::{PartialFrame,FramePart};
-use itertools::Itertools;
+use crate::protocol::{MeasurementFrame, PartialFrame};
 
-fn main() -> ! {
+mod lidar;
+use crate::lidar::Lidar;
 
+use rerun::components::{ColorRGBA, Point3D, Radius, Transform3D, Vec3D};
+use rerun::transform::*;
+
+fn main() -> Result<()> {
     env_logger::init();
 
-    let matches = Command::new("Serialport Example - Receive Data")
-        .about("Reads data from a serial port and echoes it to stdout")
-        .disable_version_flag(true)
-        .arg(
-            Arg::new("port")
-                .help("The device path to a serial port")
-                .use_value_delimiter(false)
-                .required(true),
-        )
-        .arg(
-            Arg::new("baud")
-                .help("The baud rate to connect at")
-                .use_value_delimiter(false)
-                .required(true)
-                .validator(valid_baud),
-        )
+    let matches = command!() 
+        .arg(arg!([PORT]).value_parser(value_parser!(PathBuf)).default_value("/dev/ttyUSB0"))
         .get_matches();
 
-    let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap().parse::<u32>().unwrap();
+    let recording = rerun::RecordingStreamBuilder::new("Delta2")
+        .connect(rerun::default_server_addr(), None)
+        .unwrap();
 
-    let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(10))
-        .open();
 
-    // setup the partial frame to decode into
-    let mut new_frame = PartialFrame::new();
+    let serial_port : PathBuf = matches.get_one::<PathBuf>("PORT").unwrap().into();
+    let port_str : String = serial_port.to_string_lossy().to_string();
+    let mut delta = Lidar::new();
+    
+    delta.open(port_str).unwrap();
 
-    match port {
-        Ok(mut port) => {
-            let mut serial_buf: Vec<u8> = vec![0; 1000];
-            println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
+    loop {
+        match delta.recv() {
+            Ok(frame) => {
+                // a 180 degree offset means the motor is at the 'back' of the module, which makes more sense to me.
+                let start_angle = frame.start_angle + 180.0; 
+                let offset = frame.offset_angle;
 
-            // set port DTR pin
-            match port.set_flow_control(serialport::FlowControl::Hardware) {
-                Ok(_) => port.write_data_terminal_ready(false).expect("DTR pin set High"),
-                Err(_) => todo!(),
+                let start_angles = frame
+                    .measurements
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _dist)| {
+                        let angle = start_angle + (i as f32) * offset;
+                        // Point3D::new(dx,dy, 0.0)
+                        Transform3D::new(TranslationRotationScale3D::rigid(
+                            Vec3D::ZERO,
+                            RotationAxisAngle::new(
+                                Vec3D::new(0.0, 0.0, 1.0),
+                                Angle::Degrees(-angle + 90.0),
+                            ),
+                        ))
+                    })
+                    .collect::<Vec<_>>();
+
+
+                let range_data = frame
+                    .measurements
+                    .iter()
+                    .enumerate()
+                    .map(|(i, dist)| {
+                        let angle = start_angle + (i as f32) * offset;
+                        let dx = dist.distance_mm * angle.to_radians().sin() / 1000.0;
+                        let dy = dist.distance_mm * angle.to_radians().cos() / 1000.0;
+                        Point3D::new(dx, dy, 0.0)
+                    })
+                    .collect::<Vec<_>>();
+
+                let quality_data = frame
+                    .measurements
+                    .iter()
+                    .enumerate()
+                    .map(|(_i, dist)| {
+                        ColorRGBA::from_rgb(dist.signal_quality, 0, 0)
+                    })
+                    .collect::<Vec<_>>();
+                    
+                let t = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos();
+
+                recording.set_time_nanos("scan", t as i64);
+                recording.set_time_nanos("tf", t as i64);
+
+                rerun::MsgSender::new("tf")
+                    .with_component(&start_angles)?
+                    .send(&recording)?;
+
+                rerun::MsgSender::new("scan")
+                    .with_component(&range_data)?
+                    .with_component(&quality_data)?
+                    .with_splat(Radius(0.025))?
+                    .send(&recording)?;
             }
-
-            loop {
-                debug!("LOOP");
-
-                match port.read(serial_buf.as_mut_slice()) {
-                    Ok(t) => {
-                        match new_frame.write_all(&serial_buf[..t]) {
-                            Ok(_) => {
-                            },
-                            Err(_) => {
-                            },
-                        }
-                    },
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
-                        ()
-                    },
-                    Err(e) => {
-                        eprintln!("{:?}", e)
-                    },
-                }
-
-                // check on the current frame status
-                if new_frame.finished() {
-                    // print and reset!
-                    info!("DONE! {}",new_frame.data.iter().map(|x| format!("{:02x}",x)).join(","));
-                    new_frame.reset();
-                }
+            Err(e) => {
+                panic!("{}", e);
             }
-        }
-        Err(e) => {
-            eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
-            ::std::process::exit(1);
         }
     }
-}
-
-fn valid_baud(val: &str) -> Result<(), String> {
-    val.parse::<u32>()
-        .map(|_| ())
-        .map_err(|_| format!("Invalid baud rate '{}' specified", val))
 }
