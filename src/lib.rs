@@ -99,6 +99,11 @@ impl PyMeasurementFrame {
         Ok(self.frame.measurements.iter().map(|m|{ PyMeasurement{m:m.clone()}}).collect::<Vec<PyMeasurement>>())
     }
 
+    #[getter]
+    fn points(&self) -> PyResult<Vec<(f32,f32)>> {
+        Ok(self.frame.points())
+    }
+
     fn __str__(&self) -> PyResult<String> {
         Ok(self.frame.to_string())
     }
@@ -123,6 +128,11 @@ impl PyMeasurement {
     #[getter]
     fn distance_mm(&self) -> PyResult<f32> {
         Ok(self.m.distance_mm)
+    }
+
+    #[getter]
+    fn point(&self) -> PyResult<(f32,f32)> {
+        Ok(self.m.point())
     }
 
     fn __str__(&self) -> PyResult<String> {

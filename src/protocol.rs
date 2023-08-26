@@ -79,9 +79,23 @@ impl Default for Measurement {
     }
 }
 
+impl Measurement {
+    pub fn point(&self) -> (f32,f32) {
+        // returns the data in cartesian metre units
+        let dx = self.distance_mm * self.angle.to_radians().sin() / 1000.0;
+        let dy = self.distance_mm * self.angle.to_radians().cos() / 1000.0;
+        (dx,dy)
+    }
+}
+
 impl MeasurementFrame {
     pub fn as_json(&self) -> String {
         serde_json::to_string(&self).expect("Serialized to JSON")
+    }
+
+    pub fn points(&self) -> Vec<(f32,f32)> {
+        // calls .cartesian on all measurements, returning a 'point cloud'
+        self.measurements.iter().map(|m| m.point()).collect_vec()
     }
 }
 
