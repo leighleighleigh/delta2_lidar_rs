@@ -12,4 +12,9 @@ This driver is a **WORK IN PROGRESS**, pending the following TODOs:
  - [ ] ? Expose additional diagnostics such as scan rate, SNR, CRC error rate
 
 
+## Note on Motor (M+/M-) Voltage
+I was originally running both the LiDAR MCU and it's motor from 5V - but the USB port + cable impedance meant that it was only running at about ~4V.
 
+After adding a large capacitor to the 5V supply, the motor started to spin too fast for it to report valid range data.
+
+I recommend running the motor from a stable 3.3V source for now, although ideally ~4V would maximize scan rate.
