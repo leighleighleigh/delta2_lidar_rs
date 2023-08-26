@@ -14,17 +14,65 @@ This driver is a **WORK IN PROGRESS**, pending the following TODOs:
  - [ ] ? Expose additional diagnostics such as scan rate, SNR, CRC error rates
  - [ ] ? Handle serial re-connection ?
 
-## Building
-There are a few ways to build this package.
+## Install + Use (Python)
+
+```bash
+pip install git+https://github.com/leighleighleigh/delta2_lidar_rs
 ```
-# build and run binary program
+
+`$ cat ./examples/stream-rerun.py`
+```python
+#!/usr/bin/env python3
+import rerun as rr # pip install rerun-sdk
+import math
+import delta2_lidar
+from time import sleep
+
+# start rerun session
+rr.init("delta2_lidar_rerun", spawn = True)
+
+# connect to hardware, using a rudimentary 'reconnect' method
+dev = delta2_lidar.Lidar()
+dev.open("/dev/ttyUSB0")
+
+while dev.alive():
+    # read a measurement frame
+    try:
+      f = dev.read()
+    except:
+      print("LiDAR disconnected?")
+      break
+
+    # set the time of this data
+    rr.set_time_nanos("scan", f.timestamp)
+
+    # make a list of XYZ points
+    points = []
+
+    for (dx,dy) in f.points:
+        points.append([dx,dy,0.0])
+
+    rr.log_points("scan", points)
+    rr.log_scalar("scan/rpm", f.rpm)
+
+```
+
+## Building
+
+There are a few ways to build this package.
+
+```
+# build rust library
 cargo build 
 
 # build the full library,binary,and python library, with nix
 ./build.sh
 
-# build with cross build (not tested yet)
+# build with cross build (not tested)
 cross build --target aarch64-unknown-linux-gnu
+
+# build using python setuptools (this is pretty good)
+python setup.py bdist_wheel --plat-name x86_64-unknown-linux-gnu --py-limited-api=cp38
 ```
 
 ## Note on Motor (M+/M-) Voltage
