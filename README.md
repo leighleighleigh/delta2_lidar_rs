@@ -2,6 +2,7 @@
 
 This is a driver for the 'Delta2' lidar, available through various retailers on AliExpress.
 
+> <img src="https://github.com/leighleighleigh/delta2_lidar_rs/assets/19563769/c1bdc3bf-2b20-4779-9921-db1de1d9350a" width="50%" /><br>
 > Disclaimer: I am a Rust noob. Code quality is not a priority here.
 
 This driver is a **WORK IN PROGRESS**, pending the following TODOs:
