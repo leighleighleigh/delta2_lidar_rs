@@ -1,37 +1,42 @@
 { lib
 , buildPythonPackage
 , rustPlatform
+, pythonOlder
 , pkg-config
+, setuptools
+, setuptools-rust
 , cargo
 , rustc
-, setuptools-rust
 , toml
 }:
 
 buildPythonPackage rec {
-  name = "delta2_lidar";
-
-  # format is now 'pyproject', default is 'setuptools'
-  format = "pyproject";
+  pname = "delta2-lidar";
+  version = "0.1.0";
 
   src = lib.cleanSource ./.;
-  sourceRoot = "source/";
+  sourceRoot = "source/"; # the base folder of the repo
 
   cargoDeps = rustPlatform.importCargoLock {
     lockFile = ./Cargo.lock;
   };
 
-  buildInputs = [ pkg-config ];
+  disabled = pythonOlder "3.8";
 
   nativeBuildInputs = [
-    cargo
     rustPlatform.cargoSetupHook
-    rustc
-    setuptools-rust
-    toml
     pkg-config
+    setuptools-rust
+    cargo
+    rustc
+    toml
   ];
 
+  pythonImportsCheck = [
+    "delta2_lidar"
+  ];
+
+  format = "setuptools";
 
   # postPatch = ''
   #   chmod u+w ..

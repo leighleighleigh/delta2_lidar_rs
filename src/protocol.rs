@@ -94,16 +94,50 @@ impl Measurement {
 // Other information such as min/max timestamp can be used to validate the
 // correctness of the data.
 
-// #[derive(Debug, Clone, Serialize)]
-// pub struct FullScan {
-//     pub rpm: f32,
-//     pub offset_angle: f32,
-//     pub start_angle: f32,
-//     pub timestamp: u128, // unix epoch nanoseconds when the header was identified.
-//     pub measurements: Vec<Measurement>,
-// }
+#[derive(Debug, Clone, Serialize)]
+pub struct FullScan {
+    pub frames: Vec<MeasurementFrame>,
+}
 
+impl FullScan {
+    pub fn as_json(&self) -> String {
+        serde_json::to_string(&self).expect("Serialized to JSON")
+    }
 
+    pub fn points(&self) -> Vec<(f32,f32)> {
+        // calls .cartesian on all measurements, returning a 'point cloud'
+        self.frames.iter().map(|f| f.measurements.iter().map(|m| m.point()).collect_vec()).flatten().collect_vec()
+    }
+
+    pub fn rpm(&self) -> f32 {
+        let s : f32 = self.frames.iter().map(|f| f.rpm).sum();
+        s / (self.frames.len() as f32)
+    }
+
+    pub fn timestamp(&self) -> u128 {
+        self.frames.iter().map(|f| f.timestamp).max().unwrap_or(0)
+    }
+
+    pub fn timestamp_range(&self) -> i64 {
+        // max - min timestamp
+        let max = self.frames.iter().map(|f| f.timestamp).max().unwrap_or(0);
+        let min = self.frames.iter().map(|f| f.timestamp).min().unwrap_or(0);
+        (max as i64) - (min as i64)
+    }
+
+    pub fn complete(&self) -> bool {
+        // sort the angles of the frames, then check if it integrates to a circle?
+        let angles : f32 = self.frames.iter().map(|f| f.sector_angle()).sum();
+        // get delta between sequential angles
+        angles > 720.0
+    }
+}
+
+impl Default for FullScan {
+    fn default() -> Self {
+        Self { frames: Default::default() }
+    }
+}
 
 impl MeasurementFrame {
     pub fn as_json(&self) -> String {
@@ -114,11 +148,33 @@ impl MeasurementFrame {
         // calls .cartesian on all measurements, returning a 'point cloud'
         self.measurements.iter().map(|m| m.point()).collect_vec()
     }
+
+    pub fn sector_angle(&self) -> f32 {
+        if self.measurements.len() < 4 {
+            return 0.0
+        }
+
+        // how many degrees is this slice of pi ?
+        let s = self.measurements.iter().map(|m| m.angle).reduce(f32::min).unwrap_or(0.0);
+        let mut e = self.measurements.iter().map(|m| m.angle).reduce(f32::max).unwrap_or(0.0);
+
+        if e < s {
+            e += 360.0
+        }
+
+        (e - s) % 360.0
+    }
 }
 
 impl Display for MeasurementFrame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{} rpm, {:3.1} deg, {} pts",self.rpm,self.start_angle,self.measurements.len()))
+    }
+}
+
+impl Display for FullScan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{} frames", self.frames.len()))
     }
 }
 

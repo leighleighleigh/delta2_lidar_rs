@@ -1,7 +1,7 @@
-use crate::protocol::{MeasurementFrame, PartialFrame};
+use crate::protocol::{MeasurementFrame, PartialFrame, FullScan};
 
 use anyhow::Result;
-use log::{debug, error, warn};
+use log::{debug, error, warn, info};
 
 use serialport::{self, SerialPort};
 
@@ -52,6 +52,24 @@ impl Lidar {
             },
             false => Err(RecvError),
         }
+    }
+
+    pub fn recv_fullscan(&mut self) -> Result<FullScan, RecvError> {
+        // internally, makes calls to self.recv, until it has built up a complete FullScan message.
+        let mut fs = FullScan::default();
+
+        while !fs.complete() {
+            match self.recv() {
+                Ok(f) => {
+                    fs.frames.append(&mut vec![f.clone()]);
+                },
+                Err(_) => {
+                    // ignore!
+                },
+            }
+        }
+
+        Ok(fs)
     }
 
     // attempts to bind to the serial port provided by <path>,

@@ -1,4 +1,4 @@
-use protocol::{MeasurementFrame,Measurement};
+use protocol::{MeasurementFrame,Measurement, FullScan};
 
 pub mod protocol;
 pub mod lidar;
@@ -32,6 +32,13 @@ struct PyMeasurement{
     m: Measurement,
 }
 
+#[pyclass]
+#[pyo3{name = "FullScan"}]
+#[derive(Clone)]
+struct PyFullScan {
+    scan: FullScan,
+}
+
 #[pymethods]
 impl PyLidar {
     #[new]
@@ -47,12 +54,26 @@ impl PyLidar {
         Ok(())
     }
 
-    fn read(&mut self) -> PyResult<PyMeasurementFrame> {
+    fn read_frame(&mut self) -> PyResult<PyMeasurementFrame> {
         // reads a frame, or returns a None object
         match self.dev.recv() {
             Ok(msg) => {
                 // need to turn into pyobject
                 let pymsg : PyMeasurementFrame = PyMeasurementFrame { frame: msg };
+                Ok(pymsg)
+            },
+            Err(e) => {
+                Err(PyOSError::new_err(format!("{}",e)))
+            }
+        }
+    }
+
+    fn read_full_scan(&mut self) -> PyResult<PyFullScan> {
+        // reads a frame, or returns a None object
+        match self.dev.recv_fullscan() {
+            Ok(msg) => {
+                // need to turn into pyobject
+                let pymsg : PyFullScan = PyFullScan { scan: msg };
                 Ok(pymsg)
             },
             Err(e) => {
@@ -90,6 +111,11 @@ impl PyMeasurementFrame {
     }
 
     #[getter]
+    fn sector_angle(&self) -> PyResult<f32> {
+        Ok(self.frame.sector_angle())
+    }
+
+    #[getter]
     fn end_angle(&self) -> PyResult<f32> {
         let s = self.frame.start_angle;
         let o = (self.frame.measurements.len() as f32) * self.frame.offset_angle;
@@ -117,6 +143,47 @@ impl PyMeasurementFrame {
 
     fn as_json(&self) -> PyResult<String> {
         Ok(self.frame.as_json())
+    }
+}
+
+#[pymethods]
+impl PyFullScan {
+    #[getter]
+    fn frames(&self) -> PyResult<Vec<PyMeasurementFrame>> {
+        Ok(self.scan.frames.iter().map(|f| PyMeasurementFrame{frame:f.clone()}).collect::<Vec<PyMeasurementFrame>>())
+    }
+
+    #[getter]
+    fn points(&self) -> PyResult<Vec<(f32,f32)>> {
+        Ok(self.scan.points())
+    }
+
+    #[getter]
+    fn timestamp_range(&self) -> PyResult<i64> {
+        Ok(self.scan.timestamp_range())
+    }
+
+    #[getter]
+    fn timestamp(&self) -> PyResult<u128> {
+        Ok(self.scan.timestamp())
+    }
+
+    #[getter]
+    fn rpm(&self) -> PyResult<f32> {
+        Ok(self.scan.rpm())
+    }
+
+    #[getter]
+    fn complete(&self) -> PyResult<bool> {
+        Ok(self.scan.complete())
+    }
+
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.scan.to_string())
+    }
+    
+    fn as_json(&self) -> PyResult<String> {
+        Ok(self.scan.as_json())
     }
 }
 
@@ -152,6 +219,7 @@ fn delta2_lidar_py(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyLidar>()?;
     m.add_class::<PyMeasurementFrame>()?;
     m.add_class::<PyMeasurement>()?;
+    m.add_class::<PyFullScan>()?;
     Ok(())
 }
 

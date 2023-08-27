@@ -1,2 +1,8 @@
 include Cargo.toml
-recursive-include src *.rs
+include pyproject.toml
+include build.rs
+
+recursive-include src *
+
+global-exclude */__pycache__/*
+global-exclude *.pyc

@@ -31,3 +31,5 @@ result
 **/__pycache__/**
 
 *.egg-info
+# Don't commit the binaries
+**.so
