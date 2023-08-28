@@ -18,6 +18,6 @@ stubgen -o $built -p delta2_lidar --search-path="$build"
 # wheel-up the build
 python3 setup.py bdist_wheel -k --skip-build 
 
-#pip install --upgrade --force-reinstall ./dist/delta2_lidar-0.1.0-cp310-cp310-linux_x86_64.whl 
+pip install --upgrade --force-reinstall ./dist/delta2_lidar-*-linux_x86_64.whl 
 
 
