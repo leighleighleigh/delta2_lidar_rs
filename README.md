@@ -68,17 +68,14 @@ while dev.alive():
 There are a few ways to build this package.
 
 ```
-# build rust library
+# build the rust library
 cargo build 
 
-# build the full library,binary,and python library, with nix
+# build and install a python wheel
 ./build.sh
 
-# build with cross build (not tested)
+# build with cross build
 cross build --target aarch64-unknown-linux-gnu
-
-# build using python setuptools (this is pretty good)
-python setup.py bdist_wheel --plat-name x86_64-unknown-linux-gnu --py-limited-api=cp38
 ```
 
 ## Note on Motor (M+/M-) Voltage
