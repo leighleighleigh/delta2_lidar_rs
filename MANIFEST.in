@@ -1,6 +1,7 @@
 include Cargo.toml
 include pyproject.toml
 include build.rs
+include *.pyi
 
 recursive-include src *
 
