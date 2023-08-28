@@ -24,6 +24,7 @@ setup(
         "": "./py-src/",
         "delta2_lidar": "./py-src/delta2_lidar",
     },
+    package_data={'delta2_lidar':['*.pyi']},
     zip_safe=False,
     rust_extensions=[
         RustExtension(

@@ -9,11 +9,13 @@
 rm -rf build 
 rm -rf ./py-src/*.egg-info
 rm -rf dist
+
 # build into ./build/ folder
 python setup.py build -b ./build/
-# run stubgen in the build folder
-built=$(realpath ./build/lib*)
-stubgen -o $built -p delta2_lidar --search-path="$build"
+
+# [OPTIONAL] run stubgen in the built folder
+# built=$(realpath ./build/lib*)
+# stubgen -o $built -p delta2_lidar --search-path="$build"
 
 # wheel-up the build
 python3 setup.py bdist_wheel -k --skip-build 

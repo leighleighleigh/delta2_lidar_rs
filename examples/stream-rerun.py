@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-import rerun as rr # pip install rerun-sdk
-import math
-import numpy as np
-from delta2_lidar import Lidar, MeasurementFrame, FullScan
 from time import sleep
+import numpy as np
+from typing import List, Tuple
+
+import rerun as rr # pip install rerun-sdk
+
+from delta2_lidar import Lidar, MeasurementFrame, FullScan
+
 
 # start rerun session
 rr.init("delta2_lidar_rerun", spawn = True)
 
-# connect to hardware, using a rudimentary 'reconnect' method
+# connect to the lidar
 dev = Lidar()
 dev.open("/dev/ttyUSB0")
+
+
+def to_3D(points: List[Tuple[float,float]]) -> np.ndarray:
+    zz = np.zeros((len(points), 1))
+    return np.hstack([points, zz])
+
 
 while dev.alive():
     # read a measurement frame
@@ -23,12 +32,8 @@ while dev.alive():
     # set the time of this data
     rr.set_time_nanos("scan", scan.timestamp)
 
-    # make a list of XYZ points
-    points = []
+    # convert the 2D points to 3D
+    points_xyz = to_3D(scan.points)
 
-    for (dx,dy) in scan.points:
-        points.append([dx,dy,0.0])
-
-    rr.log_points("scan", np.array(points).copy())
-    # rr.log_scalar("scan/rpm", scan.rpm)
-    # rr.log_scalar("scan/scan_sector", sum(list(map(lambda f: f.sector_angle, scan.frames))))
+    rr.log_points("scan", points_xyz)
+    rr.log_scalar("scan/rpm", scan.rpm)
