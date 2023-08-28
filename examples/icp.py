@@ -118,3 +118,10 @@ def iterative_closest_point(A, B, max_iterations=20, tolerance=0.001):
     finalA = np.dot(rot, A.T).T + t
 
     return T, finalA, final_error, i
+
+def apply_transform(transform, x):
+    x_h = np.ones((x.shape[0] + 1, x.shape[1]), dtype=x.dtype)
+    x_h[:-1, :] = x
+    x_t = np.dot(transform, x_h)
+    return x_t[:2] / x_t[-1]
+
