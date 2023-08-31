@@ -31,7 +31,7 @@ setup(
             "delta2_lidar.delta2_lidar_py",
             path="Cargo.toml",
             binding=Binding.PyO3,
-            py_limited_api='auto'
+            py_limited_api=True
         )
     ],
     include_package_data=True,
