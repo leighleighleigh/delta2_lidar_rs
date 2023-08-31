@@ -3,5 +3,5 @@ procs:
     shell: "python3 stream-ros2.py"
   ros2-foxglove-bridge:
     shell: "ros2 launch foxglove_bridge foxglove_bridge_launch.xml"
-  pcl-to-laserscan:
-    shell: "ros2 launch pointcloud_to_laserscan sample_pointcloud_to_laserscan_launch.py"
+  #pcl-to-laserscan:
+    #shell: "ros2 launch pointcloud_to_laserscan sample_pointcloud_to_laserscan_launch.py"

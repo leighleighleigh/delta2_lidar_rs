@@ -36,7 +36,7 @@ def timer_callback():
         points_xyz = to_3D(scan.points)
 
         hd = Header()
-        hd.frame_id = "cloud"
+        hd.frame_id = "delta2"
         hd.stamp = Time(seconds=scan.timestamp // 1e9, nanoseconds=scan.timestamp % 1e9).to_msg()
 
         pclmsg = create_cloud_xyz32(hd, points_xyz)
@@ -58,7 +58,7 @@ def main(args=None):
     dev.open("/dev/ttyUSB0")
     node = Node('delta2')
     node.create_timer(0.01, timer_callback)
-    pub = node.create_publisher(PointCloud2, "/scanner/cloud", 0)
+    pub = node.create_publisher(PointCloud2, "/cloud", 0)
     pubrpm = node.create_publisher(Float32, "/rpm", 0)
     rclpy.spin(node)
     rclpy.shutdown()
