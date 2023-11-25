@@ -1,35 +1,21 @@
-{ lib
-, buildPythonPackage
-, rustPlatform
-, pythonOlder
-, pkg-config
-, setuptools
-, setuptools-rust
-, cargo
-, rustc
-, toml
-}:
-
-buildPythonPackage rec {
+{ pkgs ? import <nixpkgs> {} }:                                                    
+pkgs.python310Packages.buildPythonPackage rec {
   pname = "delta2-lidar";
   version = "0.1.0";
 
-  src = lib.cleanSource ./.;
+  src = pkgs.lib.cleanSource ./.;
   sourceRoot = "source/"; # the base folder of the repo
 
-  cargoDeps = rustPlatform.importCargoLock {
+  cargoDeps = pkgs.rustPlatform.importCargoLock {
     lockFile = ./Cargo.lock;
   };
 
-  disabled = pythonOlder "3.8";
-
-  nativeBuildInputs = [
+  nativeBuildInputs = with pkgs; [
     rustPlatform.cargoSetupHook
-    pkg-config
-    setuptools-rust
+    python310Packages.setuptools-rust
+    python310Packages.toml
     cargo
     rustc
-    toml
   ];
 
   pythonImportsCheck = [
